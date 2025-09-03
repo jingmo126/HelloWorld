@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>响应式HelloWorld</title>
+    <!-- PWA支持 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="HelloWorld">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="icon-192x192.svg">
     <style>
         /* 基础样式 */
         * {
@@ -53,6 +61,30 @@
 
         .hello-btn:hover {
             background-color: #45a049;
+        }
+
+        /* 添加到桌面按钮样式 */
+        .install-btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 300px;
+            display: none;
+        }
+
+        .install-btn:hover {
+            background-color: #1976D2;
+        }
+
+        .install-btn.show {
+            display: block;
         }
 
         /* 响应式文本容器样式 */
@@ -127,6 +159,7 @@
     <div class="container">
         <h1>点击下方按钮查看Hello World</h1>
         <button class="hello-btn" id="helloButton">显示Hello World</button>
+        <button class="install-btn" id="installButton">添加到桌面</button>
         <div class="hello-text" id="helloText">
             <h2>Hello World!</h2>
         </div>
@@ -148,6 +181,54 @@
                 helloButton.textContent = '隐藏Hello World';
             }
         });
+
+        // 添加到桌面功能
+        const installButton = document.getElementById('installButton');
+        let deferredPrompt;
+
+        // 监听安装事件
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // 阻止浏览器默认的安装提示
+            e.preventDefault();
+            // 保存事件，以便稍后触发
+            deferredPrompt = e;
+            // 显示添加到桌面按钮
+            installButton.classList.add('show');
+        });
+
+        // 点击添加到桌面按钮
+        installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // 显示安装提示
+                deferredPrompt.prompt();
+                // 等待用户响应
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`用户${outcome === 'accepted' ? '接受' : '拒绝'}了安装`);
+                // 重置deferredPrompt
+                deferredPrompt = null;
+                // 隐藏按钮
+                installButton.classList.remove('show');
+            }
+        });
+
+        // 监听应用安装完成事件
+        window.addEventListener('appinstalled', () => {
+            console.log('应用已安装到桌面');
+            installButton.classList.remove('show');
+        });
+
+        // 注册service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker 注册成功:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker 注册失败:', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
