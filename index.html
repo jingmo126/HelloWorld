@@ -76,15 +76,19 @@
             margin-top: 20px;
             width: 100%;
             max-width: 300px;
-            display: none;
+            display: block;
         }
 
         .install-btn:hover {
             background-color: #1976D2;
         }
 
-        .install-btn.show {
-            display: block;
+        /* 安装提示文本 */
+        .install-tip {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
         }
 
         /* 响应式文本容器样式 */
@@ -160,6 +164,10 @@
         <h1>点击下方按钮查看Hello World</h1>
         <button class="hello-btn" id="helloButton">显示Hello World</button>
         <button class="install-btn" id="installButton">添加到桌面</button>
+        <div class="install-tip">
+            <p>PC端：点击按钮后按提示添加到桌面快捷方式</p>
+            <p>移动端：不同浏览器操作方式可能不同，通常在浏览器菜单中有"添加到主屏幕"选项</p>
+        </div>
         <div class="hello-text" id="helloText">
             <h2>Hello World!</h2>
         </div>
@@ -188,13 +196,20 @@
 
         // 监听安装事件
         window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('beforeinstallprompt 事件触发');
             // 阻止浏览器默认的安装提示
             e.preventDefault();
             // 保存事件，以便稍后触发
             deferredPrompt = e;
             // 显示添加到桌面按钮
             installButton.classList.add('show');
+            console.log('安装按钮已显示');
         });
+
+        // 移除不需要的定时器，因为按钮现在默认显示
+        // 检查浏览器是否支持beforeinstallprompt事件
+        const isBeforeInstallPromptSupported = 'beforeinstallprompt' in window;
+        console.log('beforeinstallprompt支持:', isBeforeInstallPromptSupported);
 
         // 点击添加到桌面按钮
         installButton.addEventListener('click', async () => {
@@ -206,8 +221,10 @@
                 console.log(`用户${outcome === 'accepted' ? '接受' : '拒绝'}了安装`);
                 // 重置deferredPrompt
                 deferredPrompt = null;
-                // 隐藏按钮
-                installButton.classList.remove('show');
+                alert('安装成功！您可以在桌面或主屏幕上找到应用图标。');
+            } else {
+                // 如果浏览器不支持自动安装提示，提供手动安装指南
+                alert('\n您的浏览器可能需要手动添加到桌面:\n\nPC端Chrome: 点击地址栏右侧的"⊕"图标\nFirefox: 使用菜单中的"安装网站"选项\niOS Safari: 点击"共享"按钮，选择"添加到主屏幕"\nAndroid: 浏览器菜单中选择"添加到主屏幕"');
             }
         });
 
