@@ -97,23 +97,76 @@ pm run pm2:startup
 
 ## 步骤6：通过外部IP访问应用
 
-1. 在Google Cloud Console中，找到您的虚拟机实例
+1. **查找虚拟机的外部IP地址**：
+   - 通过Google Cloud Console：
+     - 登录到[Google Cloud Console](https://console.cloud.google.com/)
+     - 导航到**Compute Engine** > **虚拟机实例**
+     - 在实例列表中找到您的虚拟机
+     - 在"外部IP"列中查找分配给您虚拟机的IP地址
+   - 通过gcloud命令行：
+     ```bash
+     gcloud compute instances list --filter="name=[INSTANCE_NAME]"
+     ```
+     查看结果中的"EXTERNAL_IP"字段
+
 2. 复制实例的**外部IP地址**
-3. 在浏览器中访问：`http://[EXTERNAL_IP]:8080`
+3. 在浏览器中访问：`http://[EXTERNAL_IP]:8080`，其中`[EXTERNAL_IP]`是您复制的外部IP地址
+
+**重要提示**：默认情况下，Google Cloud为虚拟机分配的是临时外部IP，当虚拟机停止后再启动时，IP地址可能会改变。对于生产环境，建议将外部IP设置为静态IP。
 
 ## 常见问题排查
 
 1. **无法访问应用**
    - 检查防火墙规则是否正确配置
-   - 确认应用正在运行（使用`ps aux | grep node`检查进程）
+   - 确认应用正在运行（使用`ps aux | grep http-server`检查进程）
    - 检查应用是否监听在0.0.0.0:8080（使用`netstat -tuln | grep 8080`检查）
+   - 检查虚拟机是否分配了外部IP地址
+   - 在虚拟机内部测试访问：`curl http://127.0.0.1:8080`
 
-2. **应用运行但无法访问**
+2. **应用运行但无法通过外部IP访问**
    - 确认虚拟机的外部IP是静态还是动态（静态IP更适合生产环境）
    - 检查网络标签是否正确关联到虚拟机实例
+   - 确认防火墙规则中的目标标签与虚拟机的网络标签匹配
+   - 检查Google Cloud Console中的VPC网络设置，确保网络配置正确
+   - 运行命令`ip addr show`确认虚拟机的网络接口配置
+
+3. **解决"Available on"显示内网IP的问题**
+   - 应用显示`http://10.128.0.2:8080`是正常的，这是虚拟机的内网IP
+   - 您需要使用Google Cloud Console中显示的**外部IP地址**来访问应用
+   - 确保您在浏览器中输入的是`http://[EXTERNAL_IP]:8080`，其中`[EXTERNAL_IP]`是虚拟机的外部IP地址
+   - 再次确认防火墙规则是否正确配置了8080端口
 
 ## 扩展说明
+
+### 设置静态外部IP
+
+对于生产环境，建议将临时外部IP转换为静态外部IP，这样即使虚拟机停止并重新启动，IP地址也不会改变。
+
+**步骤如下**：
+
+1. **通过Google Cloud Console设置**：
+   - 登录到[Google Cloud Console](https://console.cloud.google.com/)
+   - 导航到**VPC网络** > **外部IP地址**
+   - 在列表中找到您虚拟机的临时外部IP
+   - 点击该IP地址旁边的下拉菜单，选择**转换为静态**
+   - 输入一个名称（例如：`hello-world-static-ip`）
+   - 点击**保留**
+
+2. **通过gcloud命令行设置**：
+   ```bash
+   # 保留当前的临时IP作为静态IP
+   gcloud compute addresses create hello-world-static-ip --addresses [YOUR_CURRENT_IP] --region [REGION]
+   
+   # 示例
+   # gcloud compute addresses create hello-world-static-ip --addresses 34.123.45.67 --region us-central1
+   
+   # 将静态IP关联到虚拟机
+   gcloud compute instances add-access-config [INSTANCE_NAME] --address [STATIC_IP] --zone [ZONE]
+   ```
+
+### 其他生产环境建议
 
 - 对于生产环境，建议使用Nginx作为反向代理
 - 考虑使用PM2管理Node.js进程，提供自动重启和负载均衡功能
 - 为了安全，建议在生产环境中配置HTTPS
+- 定期备份您的应用数据和配置
